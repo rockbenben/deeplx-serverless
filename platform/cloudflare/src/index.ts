@@ -6,6 +6,7 @@ export default {
     const token = env.token
     const dlSession = env.dl_session
     const retry = env.retry ? Number(env.retry) : undefined
-    return deeplxServerless({ request, token, dlSession, retry })
+    const cooldown = env.cooldown ? Number(env.cooldown) : undefined
+    return deeplxServerless({ request, token, dlSession, retry, cooldown })
   },
 } satisfies ExportedHandler<IEnv>

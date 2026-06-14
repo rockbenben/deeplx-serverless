@@ -4,6 +4,7 @@ export interface IEnv {
   token: string
   dl_session?: string
   retry?: string
+  cooldown?: string
 }
 
 export interface IParams {

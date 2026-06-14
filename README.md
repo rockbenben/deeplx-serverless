@@ -13,9 +13,12 @@ A free-to-deploy translation API, compatible with [OwO-Network/DeepLX](https://g
 | `token`      | No       | Access token(s) for your API. Multiple tokens separated by commas (`,`).                                                                                                                                                  |
 | `dl_session` | No       | A DeepL Pro `dl_session` cookie value. When set, upstream requests use your account's much higher rate limits, which is the most reliable way to avoid `429 Too Many Requests`. **Keep this secret.**                      |
 | `retry`      | No       | Number of extra attempts (with exponential backoff) when DeepL replies with `429`. Defaults to `2`.                                                                                                                       |
+| `cooldown`   | No       | After DeepL rate-limits the upstream IP, how long (in milliseconds) to reject requests immediately without contacting DeepL. This protects the function from burning CPU/subrequests while blocked. Defaults to `30000` (30s); set to `0` to disable. |
 
 > [!NOTE]
 > The `429 Too Many Requests / your IP has been blocked by DeepL temporarily` error is triggered by the **outgoing IP that reaches DeepL**, not by the end user's IP. On serverless platforms (especially Cloudflare Workers) this outgoing IP is shared across many requests and deployments, so it can be rate-limited even when an individual user is not sending many requests. To reduce this, requests now mimic the official DeepL iOS app and retry on `429`; for the highest reliability, configure a `dl_session`.
+>
+> Once a `429` is seen, an in-memory circuit breaker rejects further requests for `cooldown` ms **without calling DeepL**, so a flood of client requests during a block no longer keeps hammering DeepL (which wastes the function's resources and can prolong the block).
 
 ## 🚀 Deployment
 

@@ -21,6 +21,11 @@ export interface IOptions {
   dlSession?: string
   /** Number of extra attempts when DeepL answers with `429 Too Many Requests`. Default: `2`. */
   retry?: number
+  /**
+   * How long (in milliseconds) to reject requests immediately after DeepL rate-limits
+   * the upstream IP, to stop hammering DeepL while it is blocked. Default: `30000`.
+   */
+  cooldown?: number
 }
 
 export interface IResultData {

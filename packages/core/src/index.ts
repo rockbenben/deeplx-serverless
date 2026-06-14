@@ -43,7 +43,7 @@ export default async (options: IOptions): Promise<Response> => {
 }
 
 export async function handle(options: IOptions): Promise<Response> {
-  const { token, dlSession, retry } = options
+  const { token, dlSession, retry, cooldown } = options
   const request = toWebRequest(options.request)
   const url = new URL(request.url)
   const path = url.pathname
@@ -75,7 +75,7 @@ export async function handle(options: IOptions): Promise<Response> {
       const from = (body.from || 'AUTO').toUpperCase() as TSourceLanguage
       const to = body.to.toUpperCase() as TTargetLanguage
       const options: deepLXOptions = { text, from, to }
-      const response = await requestDeepL(options, { dlSession, retry })
+      const response = await requestDeepL(options, { dlSession, retry, cooldown })
 
       if (response.status === 429) {
         const code = 429

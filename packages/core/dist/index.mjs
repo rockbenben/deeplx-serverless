@@ -17,8 +17,18 @@ const DEEPL_HEADERS = {
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+let blockedUntil = 0;
+function isRateLimited(now = Date.now()) {
+  return now < blockedUntil;
+}
+function rateLimitedResponse() {
+  return new Response('{"code":429}', { status: 429, headers: { "Content-Type": "application/json" } });
+}
 async function requestDeepL(options, requestOptions = {}) {
-  const { dlSession, retry = 2, retryDelay = 500 } = requestOptions;
+  const { dlSession, retry = 2, retryDelay = 500, cooldown = 3e4 } = requestOptions;
+  if (isRateLimited()) {
+    return rateLimitedResponse();
+  }
   const headers = { ...DEEPL_HEADERS };
   if (dlSession) {
     headers.Cookie = `dl_session=${dlSession}`;
@@ -31,11 +41,15 @@ async function requestDeepL(options, requestOptions = {}) {
       headers
     });
     if (response.status !== 429) {
+      blockedUntil = 0;
       return response;
     }
     if (attempt < retry) {
       await sleep(retryDelay * 2 ** attempt);
     }
+  }
+  if (cooldown > 0) {
+    blockedUntil = Date.now() + cooldown;
   }
   return response;
 }
@@ -90,7 +104,7 @@ const index = async (options) => {
   return new Response(JSON.stringify(data), responseInit);
 };
 async function handle(options) {
-  const { token, dlSession, retry } = options;
+  const { token, dlSession, retry, cooldown } = options;
   const request = toWebRequest(options.request);
   const url = new URL(request.url);
   const path = url.pathname;
@@ -116,7 +130,7 @@ async function handle(options) {
       const from = (body.from || "AUTO").toUpperCase();
       const to = body.to.toUpperCase();
       const options2 = { text, from, to };
-      const response = await requestDeepL(options2, { dlSession, retry });
+      const response = await requestDeepL(options2, { dlSession, retry, cooldown });
       if (response.status === 429) {
         const code2 = 429;
         const msg = "Too many requests, the upstream IP has been temporarily rate-limited by DeepL. Please try again later.";
@@ -138,4 +152,4 @@ async function handle(options) {
   }
 }
 
-export { index as default, handle, requestDeepL };
+export { index as default, handle, isRateLimited, requestDeepL };

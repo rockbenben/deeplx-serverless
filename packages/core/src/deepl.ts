@@ -29,6 +29,12 @@ export interface IRequestOptions {
   retry?: number
   /** Base delay in milliseconds for the exponential backoff between retries. Default: `500`. */
   retryDelay?: number
+  /**
+   * How long (in milliseconds) to keep rejecting requests immediately after DeepL
+   * rate-limits the upstream IP, so we stop hammering DeepL while it is blocked.
+   * Default: `30000`. Set to `0` to disable.
+   */
+  cooldown?: number
 }
 
 function sleep(ms: number): Promise<void> {
@@ -36,11 +42,35 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Send a translation request to DeepL with browser-like headers and retry the
- * request with exponential backoff when DeepL rate-limits the source IP (HTTP 429).
+ * In-memory circuit breaker shared across requests handled by the same serverless
+ * instance (Worker isolate / warm function). Once DeepL rate-limits the upstream
+ * IP, every further request would otherwise keep firing `fetch` (plus retries),
+ * wasting the instance's CPU/subrequest budget and prolonging the block. While the
+ * breaker is open we reject instantly without contacting DeepL.
+ */
+let blockedUntil = 0
+
+/** Whether the breaker is currently open (upstream IP is in a cooldown window). */
+export function isRateLimited(now: number = Date.now()): boolean {
+  return now < blockedUntil
+}
+
+function rateLimitedResponse(): Response {
+  return new Response('{"code":429}', { status: 429, headers: { 'Content-Type': 'application/json' } })
+}
+
+/**
+ * Send a translation request to DeepL with browser-like headers, retry with
+ * exponential backoff on `429 Too Many Requests`, and open an in-memory circuit
+ * breaker for `cooldown` ms once rate-limited so the instance stops hammering DeepL.
  */
 export async function requestDeepL(options: deepLXOptions, requestOptions: IRequestOptions = {}): Promise<Response> {
-  const { dlSession, retry = 2, retryDelay = 500 } = requestOptions
+  const { dlSession, retry = 2, retryDelay = 500, cooldown = 30000 } = requestOptions
+
+  // Breaker is open: reject immediately without touching DeepL.
+  if (isRateLimited()) {
+    return rateLimitedResponse()
+  }
 
   const headers: Record<string, string> = { ...DEEPL_HEADERS }
   if (dlSession) {
@@ -57,12 +87,19 @@ export async function requestDeepL(options: deepLXOptions, requestOptions: IRequ
     })
 
     if (response.status !== 429) {
+      // Upstream is healthy again: close the breaker.
+      blockedUntil = 0
       return response
     }
 
     if (attempt < retry) {
       await sleep(retryDelay * 2 ** attempt)
     }
+  }
+
+  // Every attempt hit 429: open the breaker so the next requests short-circuit.
+  if (cooldown > 0) {
+    blockedUntil = Date.now() + cooldown
   }
 
   return response
