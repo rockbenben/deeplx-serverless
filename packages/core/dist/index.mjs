@@ -1,5 +1,44 @@
 import { toWebRequest, bodyData } from 'body-data';
-import { translate, parse2DeepLX } from 'deeplx-lib';
+import { DEEPL_URL, getBody, parse2DeepLX } from 'deeplx-lib';
+
+const DEEPL_HEADERS = {
+  "Content-Type": "application/json",
+  "User-Agent": "DeepL/1627620 CFNetwork/3826.500.62.2.1 Darwin/24.4.0",
+  "Accept": "*/*",
+  "Accept-Language": "en-US,en;q=0.9",
+  "X-App-Os-Name": "iOS",
+  "X-App-Os-Version": "18.4.0",
+  "X-App-Device": "iPhone16,2",
+  "X-App-Build": "1627620",
+  "X-App-Version": "25.1",
+  "X-Product": "translator",
+  "Referer": "https://www.deepl.com/"
+};
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+async function requestDeepL(options, requestOptions = {}) {
+  const { dlSession, retry = 2, retryDelay = 500 } = requestOptions;
+  const headers = { ...DEEPL_HEADERS };
+  if (dlSession) {
+    headers.Cookie = `dl_session=${dlSession}`;
+  }
+  let response;
+  for (let attempt = 0; attempt <= retry; attempt++) {
+    response = await fetch(DEEPL_URL, {
+      method: "POST",
+      body: getBody(options),
+      headers
+    });
+    if (response.status !== 429) {
+      return response;
+    }
+    if (attempt < retry) {
+      await sleep(retryDelay * 2 ** attempt);
+    }
+  }
+  return response;
+}
 
 function parseToken(token = "") {
   if (Array.isArray(token)) {
@@ -51,7 +90,7 @@ const index = async (options) => {
   return new Response(JSON.stringify(data), responseInit);
 };
 async function handle(options) {
-  const { token } = options;
+  const { token, dlSession, retry } = options;
   const request = toWebRequest(options.request);
   const url = new URL(request.url);
   const path = url.pathname;
@@ -77,9 +116,14 @@ async function handle(options) {
       const from = (body.from || "AUTO").toUpperCase();
       const to = body.to.toUpperCase();
       const options2 = { text, from, to };
-      const response = await translate(options2);
-      const translateData = await response.json();
-      if (translateData.error) {
+      const response = await requestDeepL(options2, { dlSession, retry });
+      if (response.status === 429) {
+        const code2 = 429;
+        const msg = "Too many requests, the upstream IP has been temporarily rate-limited by DeepL. Please try again later.";
+        return Response.json({ code: code2, msg }, { status: code2 });
+      }
+      const translateData = await response.json().catch(() => ({}));
+      if (!response.ok || translateData.error) {
         const code2 = response.status;
         return Response.json({ code: code2, ...translateData }, { status: code2 });
       }
@@ -94,4 +138,4 @@ async function handle(options) {
   }
 }
 
-export { index as default, handle };
+export { index as default, handle, requestDeepL };

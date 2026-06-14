@@ -17,6 +17,10 @@ export interface IBody {
 export interface IOptions {
   request: IncomingMessage | Request
   token?: string | string[]
+  /** DeepL Pro `dl_session` cookie value. When set, requests use the account's higher limits. */
+  dlSession?: string
+  /** Number of extra attempts when DeepL answers with `429 Too Many Requests`. Default: `2`. */
+  retry?: number
 }
 
 export interface IResultData {

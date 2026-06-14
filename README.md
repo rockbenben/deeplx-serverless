@@ -6,6 +6,17 @@ A free-to-deploy translation API, compatible with [OwO-Network/DeepLX](https://g
 > For better security and to prevent misuse, it’s strongly recommended to configure a `token`.
 > Multiple tokens can be set using commas (`,`).
 
+## ⚙️ Environment Variables
+
+| Name         | Required | Description                                                                                                                                                                                                                |
+| ------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `token`      | No       | Access token(s) for your API. Multiple tokens separated by commas (`,`).                                                                                                                                                  |
+| `dl_session` | No       | A DeepL Pro `dl_session` cookie value. When set, upstream requests use your account's much higher rate limits, which is the most reliable way to avoid `429 Too Many Requests`. **Keep this secret.**                      |
+| `retry`      | No       | Number of extra attempts (with exponential backoff) when DeepL replies with `429`. Defaults to `2`.                                                                                                                       |
+
+> [!NOTE]
+> The `429 Too Many Requests / your IP has been blocked by DeepL temporarily` error is triggered by the **outgoing IP that reaches DeepL**, not by the end user's IP. On serverless platforms (especially Cloudflare Workers) this outgoing IP is shared across many requests and deployments, so it can be rate-limited even when an individual user is not sending many requests. To reduce this, requests now mimic the official DeepL iOS app and retry on `429`; for the highest reliability, configure a `dl_session`.
+
 ## 🚀 Deployment
 
 Click the one-click deploy buttons below, or [fork the repository](https://github.com/lete114/deeplx-serverless/fork) and configure the deployment manually.
