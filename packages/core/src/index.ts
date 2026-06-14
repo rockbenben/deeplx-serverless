@@ -68,7 +68,9 @@ export async function handle(options: IOptions): Promise<Response> {
     }
 
     // fix unsupported regional variant
-    body.to = body.to.split('-')[0]
+    if (body.to) {
+      body.to = body.to.split('-')[0]
+    }
 
     if (path.startsWith('/translate') && body.to && body.text) {
       const text = body.text
