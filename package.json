@@ -29,11 +29,11 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "prepare": "simple-git-hooks"
+    "hooks": "simple-git-hooks"
   },
   "dependencies": {
     "body-data": "^2.0.4",
-    "deeplx-lib": "^0.0.4"
+    "deeplx-lib": "^0.0.5"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^3.6.0",
