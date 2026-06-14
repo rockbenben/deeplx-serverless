@@ -23,8 +23,6 @@ const DEEPL_HEADERS: Record<string, string> = {
 }
 
 export interface IRequestOptions {
-  /** DeepL Pro `dl_session` cookie value. When set, requests use the account's higher limits. */
-  dlSession?: string
   /** Number of extra attempts when DeepL answers with `429 Too Many Requests`. Default: `2`. */
   retry?: number
   /** Base delay in milliseconds for the exponential backoff between retries. Default: `500`. */
@@ -65,16 +63,11 @@ function rateLimitedResponse(): Response {
  * breaker for `cooldown` ms once rate-limited so the instance stops hammering DeepL.
  */
 export async function requestDeepL(options: deepLXOptions, requestOptions: IRequestOptions = {}): Promise<Response> {
-  const { dlSession, retry = 2, retryDelay = 500, cooldown = 30000 } = requestOptions
+  const { retry = 2, retryDelay = 500, cooldown = 30000 } = requestOptions
 
   // Breaker is open: reject immediately without touching DeepL.
   if (isRateLimited()) {
     return rateLimitedResponse()
-  }
-
-  const headers: Record<string, string> = { ...DEEPL_HEADERS }
-  if (dlSession) {
-    headers.Cookie = `dl_session=${dlSession}`
   }
 
   let response!: Response
@@ -83,7 +76,7 @@ export async function requestDeepL(options: deepLXOptions, requestOptions: IRequ
     response = await fetch(DEEPL_URL, {
       method: 'POST',
       body: getBody(options),
-      headers,
+      headers: DEEPL_HEADERS,
     })
 
     if (response.status !== 429) {

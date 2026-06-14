@@ -25,20 +25,16 @@ function rateLimitedResponse() {
   return new Response('{"code":429}', { status: 429, headers: { "Content-Type": "application/json" } });
 }
 async function requestDeepL(options, requestOptions = {}) {
-  const { dlSession, retry = 2, retryDelay = 500, cooldown = 3e4 } = requestOptions;
+  const { retry = 2, retryDelay = 500, cooldown = 3e4 } = requestOptions;
   if (isRateLimited()) {
     return rateLimitedResponse();
-  }
-  const headers = { ...DEEPL_HEADERS };
-  if (dlSession) {
-    headers.Cookie = `dl_session=${dlSession}`;
   }
   let response;
   for (let attempt = 0; attempt <= retry; attempt++) {
     response = await fetch(DEEPL_URL, {
       method: "POST",
       body: getBody(options),
-      headers
+      headers: DEEPL_HEADERS
     });
     if (response.status !== 429) {
       blockedUntil = 0;
@@ -104,7 +100,7 @@ const index = async (options) => {
   return new Response(JSON.stringify(data), responseInit);
 };
 async function handle(options) {
-  const { token, dlSession, retry, cooldown } = options;
+  const { token, retry, cooldown } = options;
   const request = toWebRequest(options.request);
   const url = new URL(request.url);
   const path = url.pathname;
@@ -130,7 +126,7 @@ async function handle(options) {
       const from = (body.from || "AUTO").toUpperCase();
       const to = body.to.toUpperCase();
       const options2 = { text, from, to };
-      const response = await requestDeepL(options2, { dlSession, retry, cooldown });
+      const response = await requestDeepL(options2, { retry, cooldown });
       if (response.status === 429) {
         const code2 = 429;
         const msg = "Too many requests, the upstream IP has been temporarily rate-limited by DeepL. Please try again later.";
