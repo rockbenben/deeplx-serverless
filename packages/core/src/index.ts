@@ -1,8 +1,11 @@
 import type { IOptions as deepLXOptions, IDeepLData, IDeepLDataError, TSourceLanguage, TTargetLanguage } from 'deeplx-lib'
 import type { IBody, IOptions, IParams } from './types'
 import { bodyData, toWebRequest } from 'body-data'
-import { parse2DeepLX, translate } from 'deeplx-lib'
+import { parse2DeepLX } from 'deeplx-lib'
+import { requestDeepL } from './deepl'
 import { authToken, parseToken } from './utils'
+
+export * from './deepl'
 
 export * from './types.d'
 
@@ -40,7 +43,7 @@ export default async (options: IOptions): Promise<Response> => {
 }
 
 export async function handle(options: IOptions): Promise<Response> {
-  const { token } = options
+  const { token, retry, cooldown } = options
   const request = toWebRequest(options.request)
   const url = new URL(request.url)
   const path = url.pathname
@@ -72,10 +75,17 @@ export async function handle(options: IOptions): Promise<Response> {
       const from = (body.from || 'AUTO').toUpperCase() as TSourceLanguage
       const to = body.to.toUpperCase() as TTargetLanguage
       const options: deepLXOptions = { text, from, to }
-      const response = await translate(options)
-      const translateData = await response.json() as IDeepLData & IDeepLDataError
+      const response = await requestDeepL(options, { retry, cooldown })
 
-      if (translateData.error) {
+      if (response.status === 429) {
+        const code = 429
+        const msg = 'Too many requests, the upstream IP has been temporarily rate-limited by DeepL. Please try again later.'
+        return Response.json({ code, msg }, { status: code })
+      }
+
+      const translateData = await response.json().catch(() => ({})) as IDeepLData & IDeepLDataError
+
+      if (!response.ok || translateData.error) {
         const code = response.status
         return Response.json({ code, ...translateData }, { status: code })
       }

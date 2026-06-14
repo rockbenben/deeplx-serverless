@@ -2,6 +2,8 @@ export type TMethod = 'GET' | 'POST'
 
 export interface IEnv {
   token: string
+  retry?: string
+  cooldown?: string
 }
 
 export interface IParams {

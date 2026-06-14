@@ -28,7 +28,9 @@
    * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
    */
   "vars": {
-    // "token": "test1,test2"
+    // "token": "test1,test2", // optional access token(s), comma-separated. Prefer `wrangler secret put token`.
+    // "retry": "2", // optional: extra attempts on DeepL 429 (exponential backoff)
+    // "cooldown": "30000" // optional: ms to fast-reject after a 429 without calling DeepL
   }
   /**
    * Note: Use secrets to store sensitive data.
