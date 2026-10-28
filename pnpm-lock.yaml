@@ -63,7 +63,7 @@ importers:
     dependencies:
       deeplx-serverless:
         specifier: github:rockbenben/deeplx-serverless
-        version: https://codeload.github.com/rockbenben/deeplx-serverless/tar.gz/99ec6068de1a7708b73bf522a99f698be916a7dc
+        version: https://codeload.github.com/rockbenben/deeplx-serverless/tar.gz/7dfa4cfc0622175979d9ad270161e0cbbef5eebe
     devDependencies:
       '@cloudflare/vitest-pool-workers':
         specifier: ^0.8.19
@@ -79,7 +79,7 @@ importers:
     dependencies:
       deeplx-serverless:
         specifier: github:rockbenben/deeplx-serverless
-        version: https://codeload.github.com/rockbenben/deeplx-serverless/tar.gz/99ec6068de1a7708b73bf522a99f698be916a7dc
+        version: https://codeload.github.com/rockbenben/deeplx-serverless/tar.gz/7dfa4cfc0622175979d9ad270161e0cbbef5eebe
     devDependencies:
       '@types/node':
         specifier: ^24.0.10
@@ -92,7 +92,7 @@ importers:
     dependencies:
       deeplx-serverless:
         specifier: github:rockbenben/deeplx-serverless
-        version: https://codeload.github.com/rockbenben/deeplx-serverless/tar.gz/99ec6068de1a7708b73bf522a99f698be916a7dc
+        version: https://codeload.github.com/rockbenben/deeplx-serverless/tar.gz/7dfa4cfc0622175979d9ad270161e0cbbef5eebe
     devDependencies:
       '@types/node':
         specifier: ^24.0.10
@@ -2770,8 +2770,8 @@ packages:
   deeplx-lib@0.0.5:
     resolution: {integrity: sha512-Iiylm3NsPC5a/fIOX7f73CkfXLDa8WQO7Mj1Ysg/Gdlk4MRnwCcErRjcYIXLfnD6RMPAac8VqtQE2f8SwPqDGA==}
 
-  deeplx-serverless@https://codeload.github.com/rockbenben/deeplx-serverless/tar.gz/99ec6068de1a7708b73bf522a99f698be916a7dc:
-    resolution: {tarball: https://codeload.github.com/rockbenben/deeplx-serverless/tar.gz/99ec6068de1a7708b73bf522a99f698be916a7dc}
+  deeplx-serverless@https://codeload.github.com/rockbenben/deeplx-serverless/tar.gz/7dfa4cfc0622175979d9ad270161e0cbbef5eebe:
+    resolution: {tarball: https://codeload.github.com/rockbenben/deeplx-serverless/tar.gz/7dfa4cfc0622175979d9ad270161e0cbbef5eebe}
     version: 1.0.0
 
   deepmerge@4.3.1:
@@ -9854,7 +9854,7 @@ snapshots:
 
   deeplx-lib@0.0.5: {}
 
-  deeplx-serverless@https://codeload.github.com/rockbenben/deeplx-serverless/tar.gz/99ec6068de1a7708b73bf522a99f698be916a7dc:
+  deeplx-serverless@https://codeload.github.com/rockbenben/deeplx-serverless/tar.gz/7dfa4cfc0622175979d9ad270161e0cbbef5eebe:
     dependencies:
       body-data: 2.0.4
       deeplx-lib: 0.0.4
