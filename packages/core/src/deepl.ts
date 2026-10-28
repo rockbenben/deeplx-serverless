@@ -53,8 +53,55 @@ export function isRateLimited(now: number = Date.now()): boolean {
   return now < blockedUntil
 }
 
-function rateLimitedResponse(): Response {
-  return new Response('{"code":429}', { status: 429, headers: { 'Content-Type': 'application/json' } })
+/**
+ * Seconds the client should wait before retrying, advertised via `Retry-After`.
+ *
+ * Clients that understand the header (our own tools, and any well-behaved HTTP
+ * client) use it to wait exactly as long as the server asked. Without it both
+ * sides guess independently — and that is how a shared instance ends up
+ * hammering DeepL longer than necessary.
+ *
+ * Value: the REMAINING breaker window, rounded up, so a client arriving
+ * mid-cooldown is told when the instance frees up rather than when the window
+ * originally started. Clamped to 1..120s to stay inside the range clients
+ * accept for a delta-seconds value.
+ *
+ * Returns `undefined` when no window is known — i.e. the breaker was never
+ * opened (upstream 429 with the cooldown disabled). Advertising a guess there
+ * would contradict the operator's configuration, so we stay silent and let the
+ * client apply its own backoff.
+ */
+export function rateLimitRetryAfterSeconds(now: number = Date.now()): number | undefined {
+  if (!isRateLimited(now)) {
+    return undefined
+  }
+  const remainingMs = blockedUntil - now
+  return Math.min(120, Math.max(1, Math.ceil(remainingMs / 1000)))
+}
+
+/**
+ * The message every 429 carries, whatever path produced it.
+ *
+ * The breaker's fast-reject path used to answer a bare `{"code":429}` while
+ * the upstream-429 path answered `{"code":429,"msg":"..."}`. `handle()` rewrites
+ * both into one response, so users saw the same text either way — but the two
+ * paths still disagreed on the body they returned, which is a trap for any
+ * caller that reads the response directly instead of going through `handle()`.
+ * One body, one message, everywhere.
+ */
+export const RATE_LIMITED_MESSAGE = 'Too many requests, the upstream IP has been temporarily rate-limited by DeepL. Please try again later.'
+
+/**
+ * The 429 body the breaker returns when it short-circuits.
+ *
+ * Carries the same `msg` the upstream-429 path produces, so a caller that
+ * inspects this response directly sees the same diagnostic either way.
+ */
+function rateLimitedResponse(msg: string): Response {
+  return new Response(JSON.stringify({ code: 429, msg }), {
+    status: 429,
+    headers: { 'Content-Type': 'application/json' },
+  })
 }
 
 /**
@@ -67,7 +114,7 @@ export async function requestDeepL(options: deepLXOptions, requestOptions: IRequ
 
   // Breaker is open: reject immediately without touching DeepL.
   if (isRateLimited()) {
-    return rateLimitedResponse()
+    return rateLimitedResponse(RATE_LIMITED_MESSAGE)
   }
 
   let response!: Response
