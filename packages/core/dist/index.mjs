@@ -21,24 +21,13 @@ let blockedUntil = 0;
 function isRateLimited(now = Date.now()) {
   return now < blockedUntil;
 }
-function rateLimitRetryAfterSeconds(now = Date.now()) {
-  if (!isRateLimited(now)) {
-    return void 0;
-  }
-  const remainingMs = blockedUntil - now;
-  return Math.min(120, Math.max(1, Math.ceil(remainingMs / 1e3)));
-}
-const RATE_LIMITED_MESSAGE = "Too many requests, the upstream IP has been temporarily rate-limited by DeepL. Please try again later.";
-function rateLimitedResponse(msg) {
-  return new Response(JSON.stringify({ code: 429, msg }), {
-    status: 429,
-    headers: { "Content-Type": "application/json" }
-  });
+function rateLimitedResponse() {
+  return new Response('{"code":429}', { status: 429, headers: { "Content-Type": "application/json" } });
 }
 async function requestDeepL(options, requestOptions = {}) {
   const { retry = 2, retryDelay = 500, cooldown = 3e4 } = requestOptions;
   if (isRateLimited()) {
-    return rateLimitedResponse(RATE_LIMITED_MESSAGE);
+    return rateLimitedResponse();
   }
   let response;
   for (let attempt = 0; attempt <= retry; attempt++) {
@@ -89,11 +78,6 @@ const index = async (options) => {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": METHODS.join(", "),
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    // `Retry-After` is not a CORS-safelisted response header, so a cross-origin
-    // browser client cannot read it unless the server exposes it explicitly.
-    // Without this the header would be sent but invisible to the very clients
-    // it exists for.
-    "Access-Control-Expose-Headers": "Retry-After",
     "Content-Type": "application/json; charset=utf-8"
   });
   if (!METHODS.includes(method)) {
@@ -113,12 +97,6 @@ const index = async (options) => {
   }
   const data = await handle(options).then((r) => r.json());
   responseInit.status = data.code;
-  if (data.code === 429) {
-    const retryAfter = rateLimitRetryAfterSeconds();
-    if (retryAfter !== void 0) {
-      headers.set("Retry-After", String(retryAfter));
-    }
-  }
   return new Response(JSON.stringify(data), responseInit);
 };
 async function handle(options) {
@@ -153,7 +131,7 @@ async function handle(options) {
       const response = await requestDeepL(options2, { retry, cooldown });
       if (response.status === 429) {
         const code2 = 429;
-        const msg = RATE_LIMITED_MESSAGE;
+        const msg = "Too many requests, the upstream IP has been temporarily rate-limited by DeepL. Please try again later.";
         return Response.json({ code: code2, msg }, { status: code2 });
       }
       const translateData = await response.json().catch(() => ({}));
@@ -172,4 +150,4 @@ async function handle(options) {
   }
 }
 
-export { RATE_LIMITED_MESSAGE, index as default, handle, isRateLimited, rateLimitRetryAfterSeconds, requestDeepL };
+export { index as default, handle, isRateLimited, requestDeepL };

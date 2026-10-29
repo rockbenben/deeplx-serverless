@@ -23,7 +23,6 @@
     "dev": "unbuild --stub",
     "lint": "eslint",
     "start": "tsx src/index.ts",
-    "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
